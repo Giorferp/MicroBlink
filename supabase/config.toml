@@ -1,0 +1,5 @@
+[auth.web3.solana]
+enabled = true
+
+[auth.rate_limit]
+web3 = 30

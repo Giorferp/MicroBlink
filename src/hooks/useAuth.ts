@@ -1,0 +1,147 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { supabase } from '@/lib/supabaseClient';
+import type { Profile } from '@/lib/types';
+import type { Session } from '@supabase/supabase-js';
+
+/**
+ * Wallet-based auth flow:
+ *
+ * 1. User connects Solana wallet
+ * 2. Clicks "Iniciar sesion"
+ * 3. Edge function `ensure-user` creates an auto-confirmed Supabase user
+ *    (using service role key — no confirmation email, no rate limit)
+ * 4. Client signs in with deterministic credentials derived from wallet address
+ * 5. Result: real Supabase session, RLS works, zero friction
+ */
+
+const SUPABASE_URL = 'https://ykzuixwmvpbkgnjedmlv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrenVpeHdtdnBia2duamVkbWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDMzMDUsImV4cCI6MjA5NTcxOTMwNX0.hKq93VtQmZmDsY8p9kG6Iq_JmOOjBKNBvwgQHAzLdrg';
+
+export function useAuth() {
+  const { publicKey, connected } = useWallet();
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Fetch profile when session changes
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      setProfile(data);
+      setLoading(false);
+    };
+
+    fetchProfile();
+  }, [session?.user?.id]);
+
+  const signIn = useCallback(async () => {
+    if (!connected || !publicKey) {
+      setAuthError('Wallet no conectada. Asegurate de tener Phantom u otra wallet instalada.');
+      throw new Error('Wallet no conectada');
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+
+    try {
+      const walletAddress = publicKey.toBase58();
+      const email = `${walletAddress}@datoschain.app`;
+      const password = walletAddress.slice(0, 32) + walletAddress.slice(0, 32);
+
+      // Step 1: Ensure user exists (edge function creates with auto-confirm)
+      const ensureRes = await fetch(`${SUPABASE_URL}/functions/v1/ensure-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ wallet_address: walletAddress }),
+      });
+
+      if (!ensureRes.ok) {
+        const errData = await ensureRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Error al preparar la cuenta');
+      }
+
+      // Step 2: Sign in with the deterministic credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setAuthError('Error de autenticacion: ' + error.message);
+        throw error;
+      }
+
+      return data;
+    } catch (err) {
+      if (err instanceof Error && !authError) {
+        setAuthError(err.message);
+      }
+      throw err;
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [connected, publicKey, authError]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setProfile(null);
+    setAuthError(null);
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!session?.user?.id) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    setProfile(data);
+  }, [session?.user?.id]);
+
+  return {
+    session,
+    profile,
+    loading,
+    authLoading,
+    authError,
+    connected,
+    publicKey,
+    isAuthenticated: !!session,
+    isRegistered: !!profile?.is_registered,
+    signIn,
+    signOut,
+    refreshProfile,
+  };
+}
