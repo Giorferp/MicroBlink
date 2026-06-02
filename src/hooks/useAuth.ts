@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabaseClient';
 import type { Profile } from '@/lib/types';
 import type { Session } from '@supabase/supabase-js';
 
@@ -15,8 +15,7 @@ import type { Session } from '@supabase/supabase-js';
  * 5. Result: real Supabase session, RLS works, zero friction
  */
 
-const SUPABASE_URL = 'https://ykzuixwmvpbkgnjedmlv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrenVpeHdtdnBia2duamVkbWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDMzMDUsImV4cCI6MjA5NTcxOTMwNX0.hKq93VtQmZmDsY8p9kG6Iq_JmOOjBKNBvwgQHAzLdrg';
+
 
 export function useAuth() {
   const { publicKey, connected } = useWallet();
@@ -80,11 +79,11 @@ export function useAuth() {
       const password = walletAddress.slice(0, 32) + walletAddress.slice(0, 32);
 
       // Step 1: Ensure user exists (edge function creates with auto-confirm)
-      const ensureRes = await fetch(`${SUPABASE_URL}/functions/v1/ensure-user`, {
+      const ensureRes = await fetch(`${supabaseUrl}/functions/v1/ensure-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
         },
         body: JSON.stringify({ wallet_address: walletAddress }),
       });
