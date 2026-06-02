@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
               <Database className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-display font-semibold text-[15px] tracking-tight text-foreground">
-              DatosChain
+              MicroBlink
             </span>
           </Link>
 

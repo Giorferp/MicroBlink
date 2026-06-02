@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -46,12 +46,21 @@ type Step = 'personal' | 'location' | 'confirm';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { session, publicKey, refreshProfile } = useAuth();
+  const { session, loading, isRegistered, publicKey, refreshProfile } = useAuth();
   const { location: geoLocation, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const { toast } = useToast();
 
   const [step, setStep] = useState<Step>('personal');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session) {
+      navigate('/', { replace: true });
+    } else if (isRegistered) {
+      navigate('/encuestas', { replace: true });
+    }
+  }, [loading, session, isRegistered, navigate]);
 
   const [form, setForm] = useState({
     full_name: '',
@@ -60,6 +69,14 @@ export default function Register() {
     education_level: '',
     occupation: '',
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -73,8 +90,17 @@ export default function Register() {
   };
 
   const handleSubmit = async () => {
-    if (!session?.user?.id || !publicKey || !geoLocation) return;
+    console.log("🔵 handleSubmit llamado");
+    console.log("  session.user.id:", session?.user?.id ?? 'FALTANTE');
+    console.log("  publicKey:", publicKey?.toBase58() ?? 'FALTANTE');
+    console.log("  geoLocation:", geoLocation ? '✅ OK' : 'FALTANTE');
 
+    if (!session?.user?.id || !publicKey || !geoLocation) {
+      console.error("🔴 Guard falló — abortando envío");
+      return;
+    }
+
+    console.log("🟢 Guard pasado — iniciando upsert en Supabase...");
     setSaving(true);
     try {
       const { error } = await supabase.from('profiles').upsert({
@@ -93,6 +119,7 @@ export default function Register() {
         updated_at: new Date().toISOString(),
       });
 
+      console.log("📦 Respuesta de Supabase — error:", error);
       if (error) throw error;
 
       await refreshProfile();
@@ -102,6 +129,7 @@ export default function Register() {
       });
       navigate('/encuestas');
     } catch (err) {
+      console.error("🔴 Error en catch:", err);
       toast({
         title: 'Error al registrar',
         description: err instanceof Error ? err.message : 'Intenta de nuevo',
@@ -169,7 +197,7 @@ export default function Register() {
                   className="w-full bg-transparent text-sm text-foreground outline-none appearance-none cursor-pointer"
                 >
                   <option value="">Selecciona...</option>
-                  {AGE_RANGES.map(r => <option key={r} value={r}>{r} anios</option>)}
+                  {AGE_RANGES.map(r => <option key={r} value={r}>{r} años</option>)}
                 </select>
               </FieldWrapper>
 

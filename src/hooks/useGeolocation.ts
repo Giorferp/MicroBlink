@@ -60,45 +60,69 @@ export function useGeolocation() {
     setError(null);
 
     try {
-      if (!navigator.geolocation) {
-        throw new Error('Geolocalización no disponible en este navegador');
-      }
-
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: false, // We only need approximate location
-          timeout: 15000,
-          maximumAge: 300000, // 5 min cache is fine for municipality-level
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-
-      // Try reverse geocoding with Nominatim (free, no API key)
+      let latitude: number;
+      let longitude: number;
       let municipality = 'Desconocido';
       let state = 'Desconocido';
+      let usingIP = false;
 
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=es&zoom=10`,
-          { headers: { 'User-Agent': 'DatosChain-Beta/1.0' } }
-        );
-        const data = await res.json();
-        const addr = data.address || {};
+        if (!navigator.geolocation) {
+          throw new Error('Geolocalización no disponible en este navegador');
+        }
 
-        municipality = addr.city || addr.town || addr.municipality || addr.county || 'Desconocido';
-        state = addr.state || estimateState(latitude, longitude);
-      } catch {
-        // Fallback to coordinate-based estimation
-        state = estimateState(latitude, longitude);
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000,
+          });
+        });
+
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (geoErr) {
+        // Fallback to IP geolocation if GPS is denied, timed out, or unavailable
+        try {
+          const ipRes = await fetch('https://ipapi.co/json/');
+          if (!ipRes.ok) throw new Error('Error al consultar geolocalización por IP');
+          const ipData = await ipRes.json();
+          latitude = ipData.latitude;
+          longitude = ipData.longitude;
+          municipality = ipData.city || 'Desconocido';
+          state = ipData.region || 'Desconocido';
+          usingIP = true;
+        } catch (ipErr) {
+          // If both fail, throw the original GPS error so the user gets notified
+          throw geoErr;
+        }
+      }
+
+      if (!usingIP) {
+        // Try reverse geocoding with Nominatim (free, no API key) for GPS coordinates
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=es&zoom=10`,
+            { headers: { 'User-Agent': 'MicroBlink-Beta/1.0' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+
+          municipality = addr.city || addr.town || addr.municipality || addr.county || 'Desconocido';
+          state = addr.state || estimateState(latitude, longitude);
+        } catch {
+          // Fallback to coordinate-based estimation
+          state = estimateState(latitude, longitude);
+        }
       }
 
       const geo: GeoLocation = { municipality, state, latitude, longitude };
       setLocation(geo);
       return geo;
     } catch (err) {
-      const msg = err instanceof GeolocationPositionError
-        ? getGeoErrorMessage(err)
+      // Check if err is GeolocationPositionError. In some environments it might not be global, so check code property
+      const msg = (err && typeof err === 'object' && 'code' in err)
+        ? getGeoErrorMessage(err as GeolocationPositionError)
         : err instanceof Error
           ? err.message
           : 'Error al obtener ubicación';

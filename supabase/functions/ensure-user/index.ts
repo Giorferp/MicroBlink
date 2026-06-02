@@ -31,24 +31,7 @@ Deno.serve(async (req: Request) => {
     // Deterministic password derived from wallet address
     const password = wallet_address.slice(0, 32) + wallet_address.slice(0, 32);
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
-
-    if (existingUser) {
-      // Make sure the user is confirmed
-      if (!existingUser.email_confirmed_at) {
-        await supabaseAdmin.auth.admin.updateUser(existingUser.id, {
-          email_confirm: true,
-        });
-      }
-      return new Response(
-        JSON.stringify({ exists: true, message: "User ready" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create user with auto-confirm (no email sent)
+    // Try to create the user directly (Optimized O(1) flow)
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -56,6 +39,18 @@ Deno.serve(async (req: Request) => {
     });
 
     if (createError) {
+      // Check if user already exists
+      if (
+        createError.message.includes("already been registered") || 
+        createError.message.includes("already exists") ||
+        createError.status === 422
+      ) {
+        return new Response(
+          JSON.stringify({ exists: true, message: "User ready" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: createError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

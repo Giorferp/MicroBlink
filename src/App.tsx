@@ -14,6 +14,7 @@ import SurveyResponse from './pages/SurveyResponse';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -31,10 +32,38 @@ const App = () => {
                         <Routes>
                             <Route path="/" element={<Index />} />
                             <Route path="/registro" element={<Register />} />
-                            <Route path="/encuestas" element={<Surveys />} />
-                            <Route path="/encuestas/:id" element={<SurveyResponse />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/perfil" element={<Profile />} />
+                            <Route
+                                path="/encuestas"
+                                element={
+                                    <ProtectedRoute>
+                                        <Surveys />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/encuestas/:id"
+                                element={
+                                    <ProtectedRoute>
+                                        <SurveyResponse />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/dashboard"
+                                element={
+                                    <ProtectedRoute>
+                                        <Dashboard />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/perfil"
+                                element={
+                                    <ProtectedRoute>
+                                        <Profile />
+                                    </ProtectedRoute>
+                                }
+                            />
                             <Route path="*" element={<NotFound />} />
                         </Routes>
                     </Layout>

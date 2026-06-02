@@ -28,7 +28,8 @@ export function useAuth() {
 
   // Listen for auth state changes
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 onAuthStateChange:', event, session?.user?.id ?? 'null session');
       setSession(session);
       if (!session) {
         setProfile(null);
@@ -37,6 +38,7 @@ export function useAuth() {
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔍 getSession inicial:', session?.user?.id ?? 'null session');
       setSession(session);
       if (!session) setLoading(false);
     });
@@ -62,6 +64,7 @@ export function useAuth() {
     fetchProfile();
   }, [session?.user?.id]);
 
+
   const signIn = useCallback(async () => {
     if (!connected || !publicKey) {
       setAuthError('Wallet no conectada. Asegurate de tener Phantom u otra wallet instalada.');
@@ -86,9 +89,17 @@ export function useAuth() {
         body: JSON.stringify({ wallet_address: walletAddress }),
       });
 
+      const ensureBody = await ensureRes.json().catch(() => ({}));
+      console.log('🛡️ ensure-user status:', ensureRes.status, 'body:', ensureBody);
+
       if (!ensureRes.ok) {
-        const errData = await ensureRes.json().catch(() => ({}));
-        throw new Error(errData.error || 'Error al preparar la cuenta');
+        const errMsg = ensureBody.error || '';
+        if (
+          !errMsg.includes("already been registered") && 
+          !errMsg.includes("already exists")
+        ) {
+          throw new Error(errMsg || 'Error al preparar la cuenta');
+        }
       }
 
       // Step 2: Sign in with the deterministic credentials
@@ -96,6 +107,8 @@ export function useAuth() {
         email,
         password,
       });
+
+      console.log('🔑 signInWithPassword — error:', error, 'user:', data?.user?.id ?? 'null');
 
       if (error) {
         setAuthError('Error de autenticacion: ' + error.message);
@@ -129,6 +142,25 @@ export function useAuth() {
       .maybeSingle();
     setProfile(data);
   }, [session?.user?.id]);
+
+  // Sync Supabase session with the active Solana wallet.
+  // IMPORTANT: Only run after 'connected' is stable to avoid the autoConnect
+  // race condition where publicKey is null for a brief moment on page load,
+  // which would incorrectly sign the user out.
+  useEffect(() => {
+    if (!connected) return; // Wait for wallet adapter to fully initialize
+
+    if (session?.user?.email && publicKey) {
+      const activeWalletAddress = publicKey.toBase58();
+      const sessionWalletAddress = session.user.email.split('@')[0];
+
+      if (activeWalletAddress.toLowerCase() !== sessionWalletAddress.toLowerCase()) {
+        signOut();
+      }
+    }
+    // Note: We intentionally do NOT sign out when !publicKey && connected
+    // because 'connected' being true guarantees publicKey is available.
+  }, [connected, publicKey, session, signOut]);
 
   return {
     session,
