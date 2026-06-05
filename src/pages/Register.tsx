@@ -2,8 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useLocale } from '@/contexts/LocaleProvider';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AGE_RANGES,
+  getEducationOptions,
+  getGenderOptions,
+  getOccupationOptions,
+  translateStoredValue,
+} from '@/lib/i18n';
 import {
   MapPin,
   Loader2,
@@ -16,32 +24,6 @@ import {
   MapPinned,
 } from 'lucide-react';
 
-const AGE_RANGES = [
-  '18-24', '25-34', '35-44', '45-54', '55-64', '65+',
-];
-
-const GENDERS = ['Masculino', 'Femenino', 'No binario', 'Prefiero no decir'];
-
-const EDUCATION_LEVELS = [
-  'Sin educación formal',
-  'Primaria',
-  'Secundaria',
-  'Preparatoria / Bachillerato',
-  'Licenciatura / Ingeniería',
-  'Posgrado (Maestría / Doctorado)',
-];
-
-const OCCUPATIONS = [
-  'Empleado(a)',
-  'Trabajador(a) independiente',
-  'Empresario(a)',
-  'Estudiante',
-  'Jubilado(a) / Pensionado(a)',
-  'Desempleado(a)',
-  'Labores del hogar',
-  'Otro',
-];
-
 type Step = 'personal' | 'location' | 'confirm';
 
 export default function Register() {
@@ -49,6 +31,11 @@ export default function Register() {
   const { session, loading, isRegistered, publicKey, refreshProfile } = useAuth();
   const { location: geoLocation, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const { toast } = useToast();
+  const { t, locale } = useLocale();
+
+  const genders = getGenderOptions(locale);
+  const educationLevels = getEducationOptions(locale);
+  const occupations = getOccupationOptions(locale);
 
   const [step, setStep] = useState<Step>('personal');
   const [saving, setSaving] = useState(false);
@@ -124,15 +111,15 @@ export default function Register() {
 
       await refreshProfile();
       toast({
-        title: 'Registro exitoso',
-        description: 'Tu perfil ha sido creado y verificado.',
+        title: t('register.successTitle'),
+        description: t('register.successDesc'),
       });
       navigate('/encuestas');
     } catch (err) {
       console.error("🔴 Error en catch:", err);
       toast({
-        title: 'Error al registrar',
-        description: err instanceof Error ? err.message : 'Intenta de nuevo',
+        title: t('register.errorTitle'),
+        description: err instanceof Error ? err.message : t('register.tryAgain'),
         variant: 'destructive',
       });
     } finally {
@@ -173,64 +160,62 @@ export default function Register() {
         {step === 'personal' && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-display font-bold text-foreground">Datos demograficos</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Esta informacion es necesaria para categorizar tus respuestas
-              </p>
+              <h2 className="text-xl font-display font-bold text-foreground">{t('register.personalTitle')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('register.personalSubtitle')}</p>
             </div>
 
             <div className="bg-card border border-border/80 rounded-xl p-5 space-y-4">
-              <FieldWrapper icon={User} label="Nombre completo">
+              <FieldWrapper icon={User} label={t('register.fullName')}>
                 <input
                   type="text"
                   value={form.full_name}
                   onChange={e => updateField('full_name', e.target.value)}
-                  placeholder="Tu nombre"
+                  placeholder={t('register.fullNamePlaceholder')}
                   className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none"
                 />
               </FieldWrapper>
 
-              <FieldWrapper icon={User} label="Rango de edad">
+              <FieldWrapper icon={User} label={t('register.ageRange')}>
                 <select
                   value={form.age_range}
                   onChange={e => updateField('age_range', e.target.value)}
                   className="w-full bg-transparent text-sm text-foreground outline-none appearance-none cursor-pointer"
                 >
-                  <option value="">Selecciona...</option>
-                  {AGE_RANGES.map(r => <option key={r} value={r}>{r} años</option>)}
+                  <option value="">{t('register.select')}</option>
+                  {AGE_RANGES.map(r => <option key={r} value={r}>{r} {t('register.years')}</option>)}
                 </select>
               </FieldWrapper>
 
-              <FieldWrapper icon={User} label="Genero">
+              <FieldWrapper icon={User} label={t('register.gender')}>
                 <select
                   value={form.gender}
                   onChange={e => updateField('gender', e.target.value)}
                   className="w-full bg-transparent text-sm text-foreground outline-none appearance-none cursor-pointer"
                 >
-                  <option value="">Selecciona...</option>
-                  {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                  <option value="">{t('register.select')}</option>
+                  {genders.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
                 </select>
               </FieldWrapper>
 
-              <FieldWrapper icon={GraduationCap} label="Nivel educativo">
+              <FieldWrapper icon={GraduationCap} label={t('register.education')}>
                 <select
                   value={form.education_level}
                   onChange={e => updateField('education_level', e.target.value)}
                   className="w-full bg-transparent text-sm text-foreground outline-none appearance-none cursor-pointer"
                 >
-                  <option value="">Selecciona...</option>
-                  {EDUCATION_LEVELS.map(e => <option key={e} value={e}>{e}</option>)}
+                  <option value="">{t('register.select')}</option>
+                  {educationLevels.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
                 </select>
               </FieldWrapper>
 
-              <FieldWrapper icon={Briefcase} label="Ocupacion">
+              <FieldWrapper icon={Briefcase} label={t('register.occupation')}>
                 <select
                   value={form.occupation}
                   onChange={e => updateField('occupation', e.target.value)}
                   className="w-full bg-transparent text-sm text-foreground outline-none appearance-none cursor-pointer"
                 >
-                  <option value="">Selecciona...</option>
-                  {OCCUPATIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                  <option value="">{t('register.select')}</option>
+                  {occupations.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </FieldWrapper>
             </div>
@@ -240,7 +225,7 @@ export default function Register() {
               disabled={!isPersonalComplete}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Siguiente
+              {t('register.next')}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -250,10 +235,8 @@ export default function Register() {
         {step === 'location' && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-display font-bold text-foreground">Verificacion GPS</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Verificamos tu ubicacion aproximada (municipio y estado) para validar tus datos demograficos
-              </p>
+              <h2 className="text-xl font-display font-bold text-foreground">{t('register.locationTitle')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('register.locationSubtitle')}</p>
             </div>
 
             <div className="bg-card border border-border/80 rounded-xl p-6">
@@ -263,19 +246,15 @@ export default function Register() {
                     <MapPin className="w-8 h-8 text-primary" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-foreground">
-                      Permiso de ubicacion necesario
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                      Solo registramos tu municipio y estado. Las coordenadas exactas no se almacenan.
-                    </p>
+                    <p className="text-sm font-medium text-foreground">{t('register.locationNeeded')}</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-xs">{t('register.locationPrivacy')}</p>
                   </div>
                   <button
                     onClick={handleVerifyLocation}
                     className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
                   >
                     <MapPinned className="w-4 h-4" />
-                    Verificar ubicacion
+                    {t('register.verifyLocation')}
                   </button>
                 </div>
               )}
@@ -283,7 +262,7 @@ export default function Register() {
               {geoLoading && (
                 <div className="flex flex-col items-center gap-3 py-8">
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  <p className="text-sm text-muted-foreground">Obteniendo ubicacion...</p>
+                  <p className="text-sm text-muted-foreground">{t('register.gettingLocation')}</p>
                 </div>
               )}
 
@@ -297,7 +276,7 @@ export default function Register() {
                     onClick={handleVerifyLocation}
                     className="text-sm text-primary hover:underline"
                   >
-                    Reintentar
+                    {t('register.retry')}
                   </button>
                 </div>
               )}
@@ -308,7 +287,7 @@ export default function Register() {
                     <CheckCircle2 className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-foreground">Ubicacion verificada</p>
+                    <p className="text-sm font-medium text-foreground">{t('register.locationVerified')}</p>
                     <div className="mt-2 flex items-center gap-2 justify-center">
                       <span className="px-2.5 py-1 bg-accent rounded-md text-xs font-medium text-accent-foreground">
                         {geoLocation.municipality}
@@ -327,14 +306,14 @@ export default function Register() {
                 onClick={() => setStep('personal')}
                 className="flex-1 px-4 py-3 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
               >
-                Atras
+                {t('register.back')}
               </button>
               <button
                 onClick={() => setStep('confirm')}
                 disabled={!isLocationVerified}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Siguiente
+                {t('register.next')}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -345,22 +324,20 @@ export default function Register() {
         {step === 'confirm' && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-display font-bold text-foreground">Confirmar registro</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Revisa que tu informacion sea correcta
-              </p>
+              <h2 className="text-xl font-display font-bold text-foreground">{t('register.confirmTitle')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('register.confirmSubtitle')}</p>
             </div>
 
             <div className="bg-card border border-border/80 rounded-xl divide-y divide-border/60">
-              <ConfirmRow label="Nombre" value={form.full_name} />
-              <ConfirmRow label="Edad" value={form.age_range} />
-              <ConfirmRow label="Genero" value={form.gender} />
-              <ConfirmRow label="Educacion" value={form.education_level} />
-              <ConfirmRow label="Ocupacion" value={form.occupation} />
-              <ConfirmRow label="Municipio" value={geoLocation?.municipality || '-'} />
-              <ConfirmRow label="Estado" value={geoLocation?.state || '-'} />
+              <ConfirmRow label={t('register.name')} value={form.full_name} />
+              <ConfirmRow label={t('register.age')} value={form.age_range} />
+              <ConfirmRow label={t('register.gender')} value={translateStoredValue(form.gender, locale)} />
+              <ConfirmRow label={t('register.education')} value={translateStoredValue(form.education_level, locale)} />
+              <ConfirmRow label={t('register.occupation')} value={translateStoredValue(form.occupation, locale)} />
+              <ConfirmRow label={t('register.municipality')} value={geoLocation?.municipality || '-'} />
+              <ConfirmRow label={t('register.state')} value={geoLocation?.state || '-'} />
               <div className="px-5 py-3 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">GPS Verificado</span>
+                <span className="text-xs text-muted-foreground">{t('register.gpsVerified')}</span>
                 <CheckCircle2 className="w-4 h-4 text-green-600" />
               </div>
             </div>
@@ -370,7 +347,7 @@ export default function Register() {
                 onClick={() => setStep('location')}
                 className="flex-1 px-4 py-3 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
               >
-                Atras
+                {t('register.back')}
               </button>
               <button
                 onClick={handleSubmit}
@@ -380,7 +357,7 @@ export default function Register() {
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Confirmar y registrar'
+                  t('register.confirmRegister')
                 )}
               </button>
             </div>

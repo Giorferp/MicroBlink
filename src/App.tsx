@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { LocaleProvider } from '@/contexts/LocaleProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
@@ -25,6 +26,7 @@ const App = () => {
     const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
     return (
+        <LocaleProvider>
         <ConnectionProvider endpoint={endpoint}>
             <WalletProvider wallets={wallets} autoConnect>
                 <WalletModalProvider>
@@ -71,6 +73,7 @@ const App = () => {
                 </WalletModalProvider>
             </WalletProvider>
         </ConnectionProvider>
+        </LocaleProvider>
     );
 };
 

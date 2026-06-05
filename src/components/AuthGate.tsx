@@ -1,9 +1,11 @@
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/contexts/LocaleProvider';
 import { Database, Shield, MapPin, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 
 export default function AuthGate() {
   const { connected, isAuthenticated, authLoading, authError, signIn } = useAuth();
+  const { t } = useLocale();
 
   const handleSignIn = async () => {
     try {
@@ -13,10 +15,15 @@ export default function AuthGate() {
     }
   };
 
+  const featurePills = [
+    { icon: Shield, label: t('auth.pillOnChain') },
+    { icon: MapPin, label: t('auth.pillGps') },
+    { icon: Database, label: t('auth.pillData') },
+  ];
+
   return (
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4">
       <div className="w-full max-w-md animate-fade-in">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-10">
           <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
             <Database className="w-7 h-7 text-primary-foreground" />
@@ -25,17 +32,12 @@ export default function AuthGate() {
             MicroBlink
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5 text-center max-w-xs">
-            Plataforma descentralizada de recoleccion de datos macroeconomicos con integridad verificable
+            {t('auth.tagline')}
           </p>
         </div>
 
-        {/* Feature pills */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {[
-            { icon: Shield, label: 'Verificable on-chain' },
-            { icon: MapPin, label: 'GPS verificado' },
-            { icon: Database, label: 'Datos de alta pureza' },
-          ].map(({ icon: Icon, label }) => (
+          {featurePills.map(({ icon: Icon, label }) => (
             <div
               key={label}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/60 text-accent-foreground text-xs font-medium"
@@ -46,16 +48,15 @@ export default function AuthGate() {
           ))}
         </div>
 
-        {/* Auth card */}
         <div className="bg-card border border-border/80 rounded-xl p-6 shadow-sm">
           {!connected ? (
             <div className="flex flex-col items-center gap-4">
               <p className="text-sm text-muted-foreground text-center">
-                Conecta tu wallet de Solana para comenzar
+                {t('auth.connectWallet')}
               </p>
               <WalletMultiButton />
               <p className="text-[11px] text-muted-foreground/70 text-center">
-                Compatible con Phantom, Solflare y otras wallets Solana
+                {t('auth.walletCompat')}
               </p>
             </div>
           ) : !isAuthenticated ? (
@@ -65,11 +66,9 @@ export default function AuthGate() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground mb-1">
-                  Wallet conectada
+                  {t('auth.walletConnected')}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Firma un mensaje para verificar tu identidad. No se realizara ninguna transaccion.
-                </p>
+                <p className="text-xs text-muted-foreground">{t('auth.signMessage')}</p>
               </div>
 
               {authError && (
@@ -88,7 +87,7 @@ export default function AuthGate() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    Iniciar sesion
+                    {t('auth.signIn')}
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -102,11 +101,9 @@ export default function AuthGate() {
             href="#documentacion"
             className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
           >
-            Ver documentación del proyecto ↓
+            {t('auth.viewDocs')}
           </a>
-          <p className="text-[10px] text-muted-foreground/50 text-center">
-            Beta v0.1 &middot; Solana Devnet &middot; Datos de prueba
-          </p>
+          <p className="text-[10px] text-muted-foreground/50 text-center">{t('auth.beta')}</p>
         </div>
       </div>
     </div>

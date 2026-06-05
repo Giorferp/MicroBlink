@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/contexts/LocaleProvider';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { hashResponseData } from '@/lib/hashUtils';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +23,7 @@ export default function SurveyResponse() {
   const { session, profile } = useAuth();
   const { requestLocation } = useGeolocation();
   const { toast } = useToast();
+  const { t } = useLocale();
 
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function SurveyResponse() {
   if (!survey) {
     return (
       <div className="sm:pl-48 text-center py-20">
-        <p className="text-sm text-muted-foreground">Encuesta no encontrada</p>
+        <p className="text-sm text-muted-foreground">{t('survey.notFound')}</p>
       </div>
     );
   }
@@ -101,13 +103,13 @@ export default function SurveyResponse() {
 
       setSubmitted(true);
       toast({
-        title: 'Respuestas enviadas',
-        description: 'Tus datos han sido registrados con hash de integridad.',
+        title: t('survey.toastSuccessTitle'),
+        description: t('survey.toastSuccessDesc'),
       });
     } catch (err) {
       toast({
-        title: 'Error al enviar',
-        description: err instanceof Error ? err.message : 'Intenta de nuevo',
+        title: t('survey.toastErrorTitle'),
+        description: err instanceof Error ? err.message : t('common.tryAgain'),
         variant: 'destructive',
       });
     } finally {
@@ -124,18 +126,16 @@ export default function SurveyResponse() {
               <Shield className="w-8 h-8 text-green-600" />
             </div>
             <h2 className="text-lg font-display font-bold text-foreground mb-1">
-              Respuestas registradas
+              {t('survey.submittedTitle')}
             </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Tus datos han sido almacenados con un hash de integridad que sera verificable on-chain.
-            </p>
+            <p className="text-sm text-muted-foreground mb-6">{t('survey.submittedDesc')}</p>
 
             {dataHash && (
               <div className="bg-secondary/50 rounded-lg p-3 mb-6">
                 <div className="flex items-center gap-1.5 justify-center mb-1">
                   <Hash className="w-3 h-3 text-muted-foreground" />
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                    Hash SHA-256
+                    {t('survey.hashLabel')}
                   </span>
                 </div>
                 <p className="text-[11px] font-mono text-foreground break-all leading-relaxed">
@@ -148,7 +148,7 @@ export default function SurveyResponse() {
               onClick={() => navigate('/encuestas')}
               className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              Volver a encuestas
+              {t('survey.backToSurveys')}
             </button>
           </div>
         </div>
@@ -165,13 +165,13 @@ export default function SurveyResponse() {
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          Volver
+          {t('survey.back')}
         </button>
 
         <div className="mb-6">
           <h1 className="text-lg font-display font-bold text-foreground">{survey.title}</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Pregunta {currentQ + 1} de {totalQ}
+            {t('survey.questionOf', { current: currentQ + 1, total: totalQ })}
           </p>
         </div>
 
@@ -194,6 +194,7 @@ export default function SurveyResponse() {
               question={question}
               value={currentAnswer}
               onChange={setAnswer}
+              t={t}
             />
           </div>
         </div>
@@ -206,7 +207,7 @@ export default function SurveyResponse() {
             className="flex items-center gap-1 px-4 py-2.5 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
-            Anterior
+            {t('survey.previous')}
           </button>
 
           <div className="flex-1" />
@@ -221,7 +222,7 @@ export default function SurveyResponse() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  Enviar respuestas
+                  {t('survey.submit')}
                   <Send className="w-4 h-4" />
                 </>
               )}
@@ -232,7 +233,7 @@ export default function SurveyResponse() {
               disabled={currentAnswer === undefined || currentAnswer === ''}
               className="flex items-center gap-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Siguiente
+              {t('survey.next')}
               <ChevronRight className="w-4 h-4" />
             </button>
           )}
@@ -246,10 +247,12 @@ function QuestionInput({
   question,
   value,
   onChange,
+  t,
 }: {
   question: SurveyQuestion;
   value: string | number | undefined;
   onChange: (v: string | number) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   switch (question.type) {
     case 'select':
@@ -301,7 +304,7 @@ function QuestionInput({
           type="number"
           value={value ?? ''}
           onChange={e => onChange(e.target.value ? Number(e.target.value) : '')}
-          placeholder="Ingresa un numero"
+          placeholder={t('survey.numberPlaceholder')}
           className="w-full px-4 py-3 border border-border/80 rounded-lg bg-background text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary transition-colors"
         />
       );
@@ -311,7 +314,7 @@ function QuestionInput({
         <textarea
           value={value ?? ''}
           onChange={e => onChange(e.target.value)}
-          placeholder="Escribe tu respuesta..."
+          placeholder={t('survey.textPlaceholder')}
           rows={4}
           className="w-full px-4 py-3 border border-border/80 rounded-lg bg-background text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary transition-colors resize-none"
         />

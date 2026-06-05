@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/contexts/LocaleProvider';
 import type { Survey, SurveyResponse } from '@/lib/types';
 import {
   ClipboardList,
@@ -22,6 +23,7 @@ const CATEGORY_META: Record<string, { icon: typeof BarChart3; color: string }> =
 
 export default function Surveys() {
   const { session } = useAuth();
+  const { t } = useLocale();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -62,9 +64,10 @@ export default function Surveys() {
       <div className="max-w-2xl mx-auto animate-slide-up">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-xl font-display font-bold text-foreground">Encuestas disponibles</h1>
+          <h1 className="text-xl font-display font-bold text-foreground">{t('surveys.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {pending.length} pendiente{pending.length !== 1 ? 's' : ''} &middot; {completed.length} completada{completed.length !== 1 ? 's' : ''}
+            {pending.length} {pending.length !== 1 ? t('surveys.pendings') : t('surveys.pending')} &middot;{' '}
+            {completed.length} {completed.length !== 1 ? t('surveys.completeds') : t('surveys.completed')}
           </p>
         </div>
 
@@ -72,7 +75,7 @@ export default function Surveys() {
         <div className="flex items-center gap-4 mb-6 p-3 bg-accent/40 rounded-lg">
           <div className="flex items-center gap-1.5">
             <ClipboardList className="w-4 h-4 text-primary" />
-            <span className="text-xs font-medium text-foreground">{surveys.length} total</span>
+            <span className="text-xs font-medium text-foreground">{surveys.length} {t('surveys.total')}</span>
           </div>
           <div className="h-4 w-px bg-border" />
           <div className="flex-1 bg-border rounded-full h-2 overflow-hidden">
@@ -90,7 +93,7 @@ export default function Surveys() {
         {pending.length > 0 && (
           <div className="space-y-3 mb-8">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Pendientes
+              {t('surveys.sectionPending')}
             </h2>
             {pending.map(survey => (
               <SurveyCard key={survey.id} survey={survey} completed={false} />
@@ -102,7 +105,7 @@ export default function Surveys() {
         {completed.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Completadas
+              {t('surveys.sectionCompleted')}
             </h2>
             {completed.map(survey => (
               <SurveyCard key={survey.id} survey={survey} completed={true} />
@@ -113,7 +116,7 @@ export default function Surveys() {
         {surveys.length === 0 && (
           <div className="text-center py-16">
             <ClipboardList className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No hay encuestas disponibles en este momento</p>
+            <p className="text-sm text-muted-foreground">{t('surveys.empty')}</p>
           </div>
         )}
       </div>
@@ -122,8 +125,11 @@ export default function Surveys() {
 }
 
 function SurveyCard({ survey, completed }: { survey: Survey; completed: boolean }) {
+  const { t } = useLocale();
   const meta = CATEGORY_META[survey.category] || { icon: ClipboardList, color: 'text-muted-foreground' };
   const Icon = meta.icon;
+  const categoryKey = `surveys.categories.${survey.category}` as const;
+  const categoryLabel = t(categoryKey);
 
   return (
     <Link
@@ -150,10 +156,10 @@ function SurveyCard({ survey, completed }: { survey: Survey; completed: boolean 
               ~{survey.estimated_minutes} min
             </span>
             <span className="text-[11px] text-muted-foreground">
-              {survey.questions.length} preguntas
+              {survey.questions.length} {t('surveys.questions')}
             </span>
             <span className="text-[11px] px-1.5 py-0.5 bg-secondary rounded text-muted-foreground capitalize">
-              {survey.category}
+              {categoryLabel !== categoryKey ? categoryLabel : survey.category}
             </span>
           </div>
         </div>

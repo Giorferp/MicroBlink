@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useLocale } from '@/contexts/LocaleProvider';
 import type { GeoLocation } from '@/lib/types';
 
 // Mexico states and their approximate coordinate bounds
@@ -50,7 +51,24 @@ function estimateState(lat: number, lon: number): string {
   return 'Desconocido';
 }
 
+function getGeoErrorMessage(
+  err: GeolocationPositionError,
+  t: (key: string) => string
+): string {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      return t('geo.denied');
+    case err.POSITION_UNAVAILABLE:
+      return t('geo.unavailablePosition');
+    case err.TIMEOUT:
+      return t('geo.timeout');
+    default:
+      return t('geo.unknown');
+  }
+}
+
 export function useGeolocation() {
+  const { t } = useLocale();
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,13 +80,13 @@ export function useGeolocation() {
     try {
       let latitude: number;
       let longitude: number;
-      let municipality = 'Desconocido';
-      let state = 'Desconocido';
+      let municipality = t('geo.unknownPlace');
+      let state = t('geo.unknownPlace');
       let usingIP = false;
 
       try {
         if (!navigator.geolocation) {
-          throw new Error('Geolocalización no disponible en este navegador');
+          throw new Error(t('geo.unavailable'));
         }
 
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -85,12 +103,12 @@ export function useGeolocation() {
         // Fallback to IP geolocation if GPS is denied, timed out, or unavailable
         try {
           const ipRes = await fetch('https://ipapi.co/json/');
-          if (!ipRes.ok) throw new Error('Error al consultar geolocalización por IP');
+          if (!ipRes.ok) throw new Error(t('geo.ipError'));
           const ipData = await ipRes.json();
           latitude = ipData.latitude;
           longitude = ipData.longitude;
-          municipality = ipData.city || 'Desconocido';
-          state = ipData.region || 'Desconocido';
+          municipality = ipData.city || t('geo.unknownPlace');
+          state = ipData.region || t('geo.unknownPlace');
           usingIP = true;
         } catch (ipErr) {
           // If both fail, throw the original GPS error so the user gets notified
@@ -108,7 +126,7 @@ export function useGeolocation() {
           const data = await res.json();
           const addr = data.address || {};
 
-          municipality = addr.city || addr.town || addr.municipality || addr.county || 'Desconocido';
+          municipality = addr.city || addr.town || addr.municipality || addr.county || t('geo.unknownPlace');
           state = addr.state || estimateState(latitude, longitude);
         } catch {
           // Fallback to coordinate-based estimation
@@ -122,29 +140,16 @@ export function useGeolocation() {
     } catch (err) {
       // Check if err is GeolocationPositionError. In some environments it might not be global, so check code property
       const msg = (err && typeof err === 'object' && 'code' in err)
-        ? getGeoErrorMessage(err as GeolocationPositionError)
+        ? getGeoErrorMessage(err as GeolocationPositionError, t)
         : err instanceof Error
           ? err.message
-          : 'Error al obtener ubicación';
+          : t('geo.generic');
       setError(msg);
       return null;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   return { location, loading, error, requestLocation };
-}
-
-function getGeoErrorMessage(err: GeolocationPositionError): string {
-  switch (err.code) {
-    case err.PERMISSION_DENIED:
-      return 'Permiso de ubicación denegado. Habilita el GPS en tu dispositivo.';
-    case err.POSITION_UNAVAILABLE:
-      return 'No se pudo determinar tu ubicación. Verifica tu conexión.';
-    case err.TIMEOUT:
-      return 'La solicitud de ubicación tardó demasiado. Intenta de nuevo.';
-    default:
-      return 'Error desconocido al obtener ubicación.';
-  }
 }
