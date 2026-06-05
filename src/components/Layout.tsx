@@ -17,12 +17,18 @@ const NAV_ITEMS = [
 export default function Layout({ children }: LayoutProps) {
   const { isAuthenticated, isRegistered, profile, signOut } = useAuth();
   const location = useLocation();
+  const isLanding = location.pathname === '/' && !isAuthenticated;
+
+  const scrollToDoc = () => {
+    document.getElementById('documentacion')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Header */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-5xl flex items-center justify-between px-4 h-14">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+          <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Database className="w-4 h-4 text-primary-foreground" />
@@ -31,6 +37,17 @@ export default function Layout({ children }: LayoutProps) {
               MicroBlink
             </span>
           </Link>
+
+          {isLanding && (
+            <button
+              type="button"
+              onClick={scrollToDoc}
+              className="hidden text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
+            >
+              Documentación
+            </button>
+          )}
+          </div>
 
           <div className="flex items-center gap-3">
             {isAuthenticated && isRegistered && profile && (
@@ -54,7 +71,13 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-6">
+      <main
+        className={
+          isLanding
+            ? 'flex-1 w-full'
+            : 'mx-auto w-full max-w-5xl flex-1 px-4 py-6'
+        }
+      >
         {children}
       </main>
 

@@ -97,9 +97,17 @@ export default function AuthGate() {
           ) : null}
         </div>
 
-        <p className="text-[10px] text-muted-foreground/50 text-center mt-6">
-          Beta v0.1 &middot; Solana Devnet &middot; Datos de prueba
-        </p>
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <a
+            href="#documentacion"
+            className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
+          >
+            Ver documentación del proyecto ↓
+          </a>
+          <p className="text-[10px] text-muted-foreground/50 text-center">
+            Beta v0.1 &middot; Solana Devnet &middot; Datos de prueba
+          </p>
+        </div>
       </div>
     </div>
   );

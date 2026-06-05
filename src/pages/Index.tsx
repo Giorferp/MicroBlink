@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import AuthGate from '@/components/AuthGate';
+import DocumentationSection from '@/components/DocumentationSection';
 import { Loader2 } from 'lucide-react';
 
 export default function Index() {
@@ -26,7 +27,12 @@ export default function Index() {
   }
 
   if (!isAuthenticated) {
-    return <AuthGate />;
+    return (
+      <>
+        <AuthGate />
+        <DocumentationSection />
+      </>
+    );
   }
 
   return null;
