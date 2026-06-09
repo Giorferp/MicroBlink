@@ -171,6 +171,7 @@ export function useAuth() {
     publicKey,
     isAuthenticated: !!session,
     isRegistered: !!profile?.is_registered,
+    isResearcher: profile?.role === 'researcher',
     signIn,
     signOut,
     refreshProfile,

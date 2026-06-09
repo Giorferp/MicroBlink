@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {
+      "pathPattern": "/encuesta/**",
+      "apiPath": "https://ykzuixwmvpbkgnjedmlv.supabase.co/functions/v1/blink-survey/**"
+    }
+  ]
+}

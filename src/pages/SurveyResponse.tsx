@@ -173,6 +173,14 @@ export default function SurveyResponse() {
           <p className="text-xs text-muted-foreground mt-1">
             {t('survey.questionOf', { current: currentQ + 1, total: totalQ })}
           </p>
+          {survey.incentive_description?.trim() && (
+            <div className="mt-3 rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+                {t('survey.incentive')}
+              </p>
+              <p className="text-xs text-amber-900 mt-0.5">{survey.incentive_description}</p>
+            </div>
+          )}
         </div>
 
         {/* Progress bar */}

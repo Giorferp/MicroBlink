@@ -14,8 +14,11 @@ import Surveys from './pages/Surveys';
 import SurveyResponse from './pages/SurveyResponse';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import ResearcherDashboard from './pages/ResearcherDashboard';
+import EncuestaRedirect from './pages/EncuestaRedirect';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
+import ResearcherRoute from './components/ResearcherRoute';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -34,6 +37,7 @@ const App = () => {
                         <Routes>
                             <Route path="/" element={<Index />} />
                             <Route path="/registro" element={<Register />} />
+                            <Route path="/encuesta/:id" element={<EncuestaRedirect />} />
                             <Route
                                 path="/encuestas"
                                 element={
@@ -64,6 +68,14 @@ const App = () => {
                                     <ProtectedRoute>
                                         <Profile />
                                     </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/investigador"
+                                element={
+                                    <ResearcherRoute>
+                                        <ResearcherDashboard />
+                                    </ResearcherRoute>
                                 }
                             />
                             <Route path="*" element={<NotFound />} />

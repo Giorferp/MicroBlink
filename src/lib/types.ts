@@ -1,3 +1,5 @@
+export type UserRole = 'participant' | 'researcher';
+
 export interface Profile {
   id: string;
   wallet_address: string;
@@ -11,6 +13,7 @@ export interface Profile {
   gps_verified: boolean;
   gps_verified_at: string | null;
   is_registered: boolean;
+  role: UserRole;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +34,7 @@ export interface Survey {
   questions: SurveyQuestion[];
   is_active: boolean;
   estimated_minutes: number;
+  incentive_description: string;
   created_at: string;
 }
 

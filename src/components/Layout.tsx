@@ -4,14 +4,14 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import LanguageToggle from '@/components/LanguageToggle';
-import { BarChart3, ClipboardList, User, LogOut, Database } from 'lucide-react';
+import { BarChart3, ClipboardList, User, LogOut, Database, FlaskConical } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { isAuthenticated, isRegistered, profile, signOut } = useAuth();
+  const { isAuthenticated, isRegistered, isResearcher, profile, signOut } = useAuth();
   const { t } = useLocale();
   const location = useLocation();
   const isLanding = location.pathname === '/' && !isAuthenticated;
@@ -20,6 +20,9 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/encuestas', label: t('nav.surveys'), icon: ClipboardList },
     { path: '/dashboard', label: t('nav.dashboard'), icon: BarChart3 },
     { path: '/perfil', label: t('nav.profile'), icon: User },
+    ...(isResearcher
+      ? [{ path: '/investigador', label: t('nav.researcher'), icon: FlaskConical }]
+      : []),
   ];
 
   const scrollToDoc = () => {
