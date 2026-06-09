@@ -9,11 +9,26 @@
     UPDATE profiles SET role = 'researcher' WHERE wallet_address = 'YOUR_WALLET_ADDRESS';
 */
 
+-- 1. Crear columna 'role' en profiles si no existe
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'participant';
 
+-- 2. Crear columna 'incentive_description' en surveys si no existe
 ALTER TABLE surveys
   ADD COLUMN IF NOT EXISTS incentive_description text NOT NULL DEFAULT '';
+
+-- 3. Crear función de seguridad helper para evitar recursión infinita en RLS
+CREATE OR REPLACE FUNCTION is_researcher()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() AND role = 'researcher'
+  );
+$$;
 
 -- Researchers can read all surveys (including inactive)
 DO $$
@@ -25,9 +40,7 @@ BEGIN
   ) THEN
     CREATE POLICY "Researchers can read all surveys" ON surveys
       FOR SELECT TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'researcher')
-      );
+      USING (is_researcher());
   END IF;
 END $$;
 
@@ -41,12 +54,8 @@ BEGIN
   ) THEN
     CREATE POLICY "Researchers can update survey incentives" ON surveys
       FOR UPDATE TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'researcher')
-      )
-      WITH CHECK (
-        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'researcher')
-      );
+      USING (is_researcher())
+      WITH CHECK (is_researcher());
   END IF;
 END $$;
 
@@ -60,9 +69,7 @@ BEGIN
   ) THEN
     CREATE POLICY "Researchers can read all responses" ON survey_responses
       FOR SELECT TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'researcher')
-      );
+      USING (is_researcher());
   END IF;
 END $$;
 
@@ -76,8 +83,7 @@ BEGIN
   ) THEN
     CREATE POLICY "Researchers can read respondent profiles" ON profiles
       FOR SELECT TO authenticated
-      USING (
-        EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'researcher')
-      );
+      USING (is_researcher());
   END IF;
 END $$;
+
