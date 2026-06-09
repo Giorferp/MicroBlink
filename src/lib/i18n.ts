@@ -175,7 +175,7 @@ const es = {
     historyEmpty: 'Aún no has completado ninguna encuesta',
     defaultSurvey: 'Encuesta',
     onChain: 'Verificado on-chain',
-    pendingOnChain: 'Pendiente verificación on-chain',
+    pendingOnChain: 'Hash registrado (Local)',
     gpsVerified: 'GPS verificado',
   },
   profile: {
@@ -381,7 +381,7 @@ const en: typeof es = {
     historyEmpty: 'You have not completed any surveys yet',
     defaultSurvey: 'Survey',
     onChain: 'Verified on-chain',
-    pendingOnChain: 'Pending on-chain verification',
+    pendingOnChain: 'Hash registered (Local)',
     gpsVerified: 'GPS verified',
   },
   profile: {
