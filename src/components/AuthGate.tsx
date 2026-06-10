@@ -5,10 +5,17 @@ import { Database, Shield, MapPin, ArrowRight, Loader2, AlertCircle } from 'luci
 import MobileWalletConnect from '@/components/MobileWalletConnect';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
+function usePhantomAvailable(): boolean {
+  return typeof window !== 'undefined' &&
+    (window as unknown as { phantom?: { solana?: { isPhantom?: boolean } } })
+      .phantom?.solana?.isPhantom === true;
+}
+
 export default function AuthGate() {
   const { connected, isAuthenticated, authLoading, authError, signIn } = useAuth();
   const { t } = useLocale();
   const isMobile = useIsMobile();
+  const hasPhantom = usePhantomAvailable();
 
   const handleSignIn = async () => {
     try {
@@ -57,9 +64,9 @@ export default function AuthGate() {
               <p className="text-sm text-muted-foreground text-center">
                 {t('auth.connectWallet')}
               </p>
-              {/* Desktop: standard multi-wallet modal
-                  Mobile:  Phantom Universal Link (avoids redirect-to-download bug) */}
-              {isMobile ? <MobileWalletConnect /> : <WalletMultiButton />}
+              {/* Desktop / Phantom in-app browser: standard multi-wallet modal
+                  Mobile (no Phantom): deep links to open dApp inside Phantom */}
+              {isMobile && !hasPhantom ? <MobileWalletConnect /> : <WalletMultiButton />}
               <p className="text-[11px] text-muted-foreground/70 text-center">
                 {t('auth.walletCompat')}
               </p>
