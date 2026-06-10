@@ -1,21 +1,11 @@
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import { Database, Shield, MapPin, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import MobileWalletConnect from '@/components/MobileWalletConnect';
-import { useIsMobile } from '@/hooks/useIsMobile';
-
-function usePhantomAvailable(): boolean {
-  return typeof window !== 'undefined' &&
-    (window as unknown as { phantom?: { solana?: { isPhantom?: boolean } } })
-      .phantom?.solana?.isPhantom === true;
-}
+import ConnectWallet from '@/components/ConnectWallet';
 
 export default function AuthGate() {
   const { connected, isAuthenticated, authLoading, authError, signIn } = useAuth();
   const { t } = useLocale();
-  const isMobile = useIsMobile();
-  const hasPhantom = usePhantomAvailable();
 
   const handleSignIn = async () => {
     try {
@@ -64,9 +54,7 @@ export default function AuthGate() {
               <p className="text-sm text-muted-foreground text-center">
                 {t('auth.connectWallet')}
               </p>
-              {/* Desktop / Phantom in-app browser: standard multi-wallet modal
-                  Mobile (no Phantom): deep links to open dApp inside Phantom */}
-              {isMobile && !hasPhantom ? <MobileWalletConnect /> : <WalletMultiButton />}
+              <ConnectWallet />
               <p className="text-[11px] text-muted-foreground/70 text-center">
                 {t('auth.walletCompat')}
               </p>
