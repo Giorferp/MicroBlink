@@ -4,7 +4,11 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import LanguageToggle from '@/components/LanguageToggle';
-import { BarChart3, ClipboardList, User, LogOut, Database, FlaskConical } from 'lucide-react';
+import { BarChart3, ClipboardList, User, LogOut, Database, FlaskConical, ExternalLink } from 'lucide-react';
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(
+  typeof navigator !== 'undefined' ? navigator.userAgent : ''
+);
 
 interface LayoutProps {
   children: ReactNode;
@@ -70,7 +74,19 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="hidden sm:inline">{t('nav.signOut')}</span>
               </button>
             ) : (
-              <WalletMultiButton />
+              {isMobile ? (
+                // Universal Link: abre la dApp dentro del browser de Phantom
+                // donde window.phantom SÍ está inyectado
+                <a
+                  href={`https://phantom.app/ul/browse/${encodeURIComponent(window.location.href)}?ref=${encodeURIComponent(window.location.href)}`}
+                  className="flex items-center gap-1.5 text-xs font-medium text-primary px-3 py-2 rounded-md hover:bg-secondary transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Phantom</span>
+                </a>
+              ) : (
+                <WalletMultiButton />
+              )}
             )}
           </div>
         </div>

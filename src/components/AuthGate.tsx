@@ -2,6 +2,11 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import { Database, Shield, MapPin, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import MobileWalletConnect from '@/components/MobileWalletConnect';
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(
+  typeof navigator !== 'undefined' ? navigator.userAgent : ''
+);
 
 export default function AuthGate() {
   const { connected, isAuthenticated, authLoading, authError, signIn } = useAuth();
@@ -54,7 +59,9 @@ export default function AuthGate() {
               <p className="text-sm text-muted-foreground text-center">
                 {t('auth.connectWallet')}
               </p>
-              <WalletMultiButton />
+              {/* Desktop: standard multi-wallet modal
+                  Mobile:  Phantom Universal Link (avoids redirect-to-download bug) */}
+              {isMobile ? <MobileWalletConnect /> : <WalletMultiButton />}
               <p className="text-[11px] text-muted-foreground/70 text-center">
                 {t('auth.walletCompat')}
               </p>
