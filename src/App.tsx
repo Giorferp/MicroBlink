@@ -22,11 +22,6 @@ import ResearcherRoute from './components/ResearcherRoute';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-// Mobile browsers block programmatic wallet prompts that aren't
-// triggered by a direct user gesture, so we disable autoConnect on mobile.
-const isMobile = /Android|iPhone|iPad|iPod/i.test(
-  typeof navigator !== 'undefined' ? navigator.userAgent : ''
-);
 
 const App = () => {
     const network = WalletAdapterNetwork.Devnet;
@@ -36,6 +31,12 @@ const App = () => {
     // the Mobile Wallet Adapter (MWA) + Wallet Standard auto-detection.
     // PhantomWalletAdapter added as fallback for the Phantom in-app browser.
     const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
+
+    // Broad UA check inside useMemo to guarantee client-side evaluation
+    const isMobile = useMemo(() =>
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|Samsung/i.test(
+        navigator?.userAgent ?? ''
+      ), []);
 
     return (
         <LocaleProvider>

@@ -5,10 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import LanguageToggle from '@/components/LanguageToggle';
 import { BarChart3, ClipboardList, User, LogOut, Database, FlaskConical, ExternalLink } from 'lucide-react';
-
-const isMobile = /Android|iPhone|iPad|iPod/i.test(
-  typeof navigator !== 'undefined' ? navigator.userAgent : ''
-);
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,6 +15,7 @@ export default function Layout({ children }: LayoutProps) {
   const { isAuthenticated, isRegistered, isResearcher, profile, signOut } = useAuth();
   const { t } = useLocale();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const isLanding = location.pathname === '/' && !isAuthenticated;
 
   const navItems = [

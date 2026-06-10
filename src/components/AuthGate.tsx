@@ -3,14 +3,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import { Database, Shield, MapPin, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import MobileWalletConnect from '@/components/MobileWalletConnect';
-
-const isMobile = /Android|iPhone|iPad|iPod/i.test(
-  typeof navigator !== 'undefined' ? navigator.userAgent : ''
-);
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function AuthGate() {
   const { connected, isAuthenticated, authLoading, authError, signIn } = useAuth();
   const { t } = useLocale();
+  const isMobile = useIsMobile();
 
   const handleSignIn = async () => {
     try {
