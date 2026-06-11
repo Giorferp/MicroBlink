@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useLocale } from '@/contexts/LocaleProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -9,21 +9,20 @@ import {
   type ResponseWithProfile,
 } from '@/lib/researcherUtils';
 import { getDialBlinkUrl, getSurveyActionUrl } from '@/lib/blinkUtils';
+import GeoMap from '@/components/GeoMap';
 import {
-  BarChart3,
-  ClipboardList,
-  Copy,
-  Download,
-  ExternalLink,
-  Link2,
-  Loader2,
-  MapPin,
-  Save,
-  Users,
+  BarChart3, ClipboardList, Copy, Download, ExternalLink,
+  Link2, Loader2, MapPin, Save, Users, X,
 } from 'lucide-react';
 
 interface SurveyWithCount extends Survey {
   response_count: number;
+}
+
+interface LocationPoint {
+  state: string;
+  municipality: string;
+  count: number;
 }
 
 export default function ResearcherDashboard() {
@@ -37,6 +36,7 @@ export default function ResearcherDashboard() {
   const [savingIncentive, setSavingIncentive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
 
   const selectedSurvey = surveys.find(s => s.id === selectedId) ?? null;
   const totalResponses = surveys.reduce((sum, s) => sum + s.response_count, 0);
@@ -73,6 +73,7 @@ export default function ResearcherDashboard() {
 
     const loadDetail = async () => {
       setLoadingDetail(true);
+      setSelectedState(null);
       const { data } = await supabase
         .from('survey_responses')
         .select(
@@ -89,6 +90,30 @@ export default function ResearcherDashboard() {
 
     loadDetail();
   }, [selectedId, surveys]);
+
+  const filteredResponses = useMemo(() => {
+    if (!selectedState) return responses;
+    return responses.filter(r => {
+      const state = r.state || r.profiles?.state || '';
+      return state === selectedState;
+    });
+  }, [responses, selectedState]);
+
+  const locationPoints = useMemo((): LocationPoint[] => {
+    const counts = new Map<string, { state: string; municipality: string; count: number }>();
+    for (const r of responses) {
+      const state = r.state || r.profiles?.state || '—';
+      const mun = r.municipality || r.profiles?.municipality || '—';
+      const key = `${state}|${mun}`;
+      const existing = counts.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        counts.set(key, { state, municipality: mun, count: 1 });
+      }
+    }
+    return [...counts.values()].sort((a, b) => b.count - a.count);
+  }, [responses]);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -135,7 +160,7 @@ export default function ResearcherDashboard() {
 
   return (
     <div className="sm:pl-48">
-      <div className="max-w-4xl mx-auto animate-slide-up">
+      <div className="max-w-6xl mx-auto animate-slide-up">
         <h1 className="text-xl font-display font-bold text-foreground mb-1">
           {t('researcher.title')}
         </h1>
@@ -273,25 +298,50 @@ export default function ResearcherDashboard() {
                   </div>
                 </div>
 
-                {/* Geographic breakdown */}
+                {/* Interactive geographic map */}
                 {responses.length > 0 && (
                   <div className="bg-card border border-border/80 rounded-xl p-5">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {t('researcher.geoBreakdown')}
-                    </h4>
-                    <div className="space-y-2">
-                      {topStates(responses).map(({ state, count, percent }) => (
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {t('researcher.geoBreakdown')}
+                      </h4>
+                      {selectedState && (
+                        <button
+                          onClick={() => setSelectedState(null)}
+                          className="flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <X className="w-3 h-3" />
+                          {t('researcher.clearFilter')}
+                        </button>
+                      )}
+                    </div>
+
+                    <GeoMap
+                      locations={locationPoints}
+                      selectedState={selectedState}
+                      onSelectState={setSelectedState}
+                    />
+
+                    <div className="mt-4 space-y-2">
+                      {topStates(filteredResponses).map(({ state, count, percent }) => (
                         <div key={state}>
                           <div className="flex justify-between text-xs mb-1">
-                            <span className="text-foreground">{state}</span>
+                            <button
+                              onClick={() => setSelectedState(selectedState === state ? null : state)}
+                              className={`text-left font-medium hover:underline ${
+                                selectedState === state ? 'text-primary' : 'text-foreground'
+                              }`}
+                            >
+                              {state}
+                            </button>
                             <span className="text-muted-foreground">
                               {count} ({percent}%)
                             </span>
                           </div>
                           <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-primary rounded-full"
+                              className="h-full bg-primary rounded-full transition-all"
                               style={{ width: `${percent}%` }}
                             />
                           </div>
@@ -304,13 +354,16 @@ export default function ResearcherDashboard() {
                 {/* Question aggregations */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {t('researcher.questionStats')}
+                    {selectedState
+                      ? `${t('researcher.questionStats')} — ${selectedState}`
+                      : t('researcher.questionStats')
+                    }
                   </h4>
-                  {responses.length === 0 ? (
+                  {filteredResponses.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('researcher.noResponses')}</p>
                   ) : (
                     selectedSurvey.questions.map(q => {
-                      const agg = aggregateQuestion(q, responses);
+                      const agg = aggregateQuestion(q, filteredResponses);
                       return (
                         <div
                           key={q.id}
@@ -383,7 +436,7 @@ function topStates(responses: ResponseWithProfile[]) {
   const total = responses.length || 1;
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 10)
     .map(([state, count]) => ({
       state,
       count,

@@ -22,9 +22,11 @@ import {
   GraduationCap,
   Briefcase,
   MapPinned,
+  FlaskConical,
+  Users,
 } from 'lucide-react';
 
-type Step = 'personal' | 'location' | 'confirm';
+type Step = 'role' | 'personal' | 'location' | 'confirm';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -37,7 +39,7 @@ export default function Register() {
   const educationLevels = getEducationOptions(locale);
   const occupations = getOccupationOptions(locale);
 
-  const [step, setStep] = useState<Step>('personal');
+  const [step, setStep] = useState<Step>('role');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export default function Register() {
     gender: '',
     education_level: '',
     occupation: '',
+    role: 'participant' as 'participant' | 'researcher',
   });
 
   if (loading) {
@@ -103,6 +106,7 @@ export default function Register() {
         gps_verified: true,
         gps_verified_at: new Date().toISOString(),
         is_registered: true,
+        role: form.role,
         updated_at: new Date().toISOString(),
       });
 
@@ -132,22 +136,22 @@ export default function Register() {
       <div className="w-full max-w-lg animate-slide-up">
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {(['personal', 'location', 'confirm'] as Step[]).map((s, i) => (
+          {(['role', 'personal', 'location', 'confirm'] as Step[]).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
                   step === s
                     ? 'bg-primary text-primary-foreground'
-                    : ((['personal', 'location', 'confirm'] as Step[]).indexOf(step) > i)
+                    : (['role', 'personal', 'location', 'confirm'] as Step[]).indexOf(step) > i
                       ? 'bg-primary/20 text-primary'
                       : 'bg-secondary text-muted-foreground'
                 }`}
               >
                 {i + 1}
               </div>
-              {i < 2 && (
+              {i < 3 && (
                 <div className={`w-12 h-0.5 rounded ${
-                  (['personal', 'location', 'confirm'] as Step[]).indexOf(step) > i
+                  (['role', 'personal', 'location', 'confirm'] as Step[]).indexOf(step) > i
                     ? 'bg-primary/40'
                     : 'bg-border'
                 }`} />
@@ -155,6 +159,46 @@ export default function Register() {
             </div>
           ))}
         </div>
+
+        {/* Step: Role */}
+        {step === 'role' && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-display font-bold text-foreground">{t('register.roleTitle')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('register.roleSubtitle')}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => { updateField('role', 'participant'); setStep('personal'); }}
+                className={`bg-card border-2 rounded-xl p-6 text-center transition-all hover:shadow-sm ${
+                  form.role === 'participant'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border/80 hover:border-primary/30'
+                }`}
+              >
+                <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+                <p className="text-sm font-semibold text-foreground">{t('register.participant')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('register.participantDesc')}</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { updateField('role', 'researcher'); setStep('personal'); }}
+                className={`bg-card border-2 rounded-xl p-6 text-center transition-all hover:shadow-sm ${
+                  form.role === 'researcher'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border/80 hover:border-primary/30'
+                }`}
+              >
+                <FlaskConical className="w-8 h-8 text-primary mx-auto mb-2" />
+                <p className="text-sm font-semibold text-foreground">{t('register.researcher')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('register.researcherDesc')}</p>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Step: Personal */}
         {step === 'personal' && (
@@ -334,6 +378,10 @@ export default function Register() {
               <ConfirmRow label={t('register.gender')} value={translateStoredValue(form.gender, locale)} />
               <ConfirmRow label={t('register.education')} value={translateStoredValue(form.education_level, locale)} />
               <ConfirmRow label={t('register.occupation')} value={translateStoredValue(form.occupation, locale)} />
+              <ConfirmRow
+                label={t('register.role')}
+                value={form.role === 'researcher' ? t('register.researcher') : t('register.participant')}
+              />
               <ConfirmRow label={t('register.municipality')} value={geoLocation?.municipality || '-'} />
               <ConfirmRow label={t('register.state')} value={geoLocation?.state || '-'} />
               <div className="px-5 py-3 flex items-center justify-between">

@@ -1,23 +1,21 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import { translateStoredValue } from '@/lib/i18n';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabaseClient';
+import { useToast } from '@/hooks/use-toast';
 import {
-  User,
-  MapPin,
-  GraduationCap,
-  Briefcase,
-  Calendar,
-  CheckCircle2,
-  Wallet,
-  Copy,
-  Check,
+  User, MapPin, GraduationCap, Briefcase, Calendar,
+  CheckCircle2, Wallet, Copy, Check, Trash2, Loader2, AlertCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Profile() {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const { t, locale, dateLocale: dateLoc } = useLocale();
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!profile) return null;
 
@@ -25,6 +23,37 @@ export default function Profile() {
     navigator.clipboard.writeText(profile.wallet_address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({ wallet_address: profile.wallet_address }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Error deleting account');
+      }
+
+      toast({ title: t('profile.deletedTitle'), description: t('profile.deletedDesc') });
+      await signOut();
+    } catch (err) {
+      toast({
+        title: t('profile.deleteError'),
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   return (
@@ -79,6 +108,46 @@ export default function Profile() {
             {t('profile.privacyText')}
           </p>
         </div>
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-destructive/30 text-destructive rounded-lg text-sm font-medium hover:bg-destructive/5 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            {t('profile.deleteAccount')}
+          </button>
+        ) : (
+          <div className="mt-6 bg-destructive/5 border border-destructive/20 rounded-xl p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">{t('profile.deleteConfirm')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('profile.deleteWarning')}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {t('profile.deleteCancel')}
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  t('profile.deleteConfirmButton')
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         <p className="text-[10px] text-muted-foreground/50 text-center mt-6">
           {t('profile.createdAt', {

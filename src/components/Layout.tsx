@@ -4,7 +4,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/contexts/LocaleProvider';
 import LanguageToggle from '@/components/LanguageToggle';
 import ConnectWallet from '@/components/ConnectWallet';
-import { BarChart3, ClipboardList, User, LogOut, Database, FlaskConical } from 'lucide-react';
+import {
+  BarChart3, ClipboardList, User, LogOut, Database, FlaskConical, PlusCircle,
+} from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface LayoutProps {
@@ -23,7 +25,10 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/dashboard', label: t('nav.dashboard'), icon: BarChart3 },
     { path: '/perfil', label: t('nav.profile'), icon: User },
     ...(isResearcher
-      ? [{ path: '/investigador', label: t('nav.researcher'), icon: FlaskConical }]
+      ? [
+          { path: '/investigador', label: t('nav.researcher'), icon: FlaskConical },
+          { path: '/investigador/crear-encuesta', label: t('nav.createSurvey'), icon: PlusCircle },
+        ]
       : []),
   ];
 

@@ -5,6 +5,11 @@ import { Toaster } from '@/components/ui/toaster';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
+import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
+import { GlowWalletAdapter } from '@solana/wallet-adapter-glow';
+import { TorusWalletAdapter } from '@solana/wallet-adapter-torus';
+import { CoinbaseWalletAdapter } from '@solana/wallet-adapter-coinbase';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
 import Layout from './components/Layout';
@@ -15,6 +20,7 @@ import SurveyResponse from './pages/SurveyResponse';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import ResearcherDashboard from './pages/ResearcherDashboard';
+import CreateSurvey from './pages/CreateSurvey';
 import EncuestaRedirect from './pages/EncuestaRedirect';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,12 +33,15 @@ const App = () => {
     const network = WalletAdapterNetwork.Devnet;
     const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
-    // Empty array: @solana/wallet-adapter-react >= 0.15.21 already bundles
-    // the Mobile Wallet Adapter (MWA) + Wallet Standard auto-detection.
-    // PhantomWalletAdapter added as fallback for the Phantom in-app browser.
-    const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
+    const wallets = useMemo(() => [
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+        new BackpackWalletAdapter(),
+        new GlowWalletAdapter(),
+        new TorusWalletAdapter(),
+        new CoinbaseWalletAdapter(),
+    ], []);
 
-    // Broad UA check inside useMemo to guarantee client-side evaluation
     const isMobile = useMemo(() =>
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|Samsung/i.test(
         navigator?.userAgent ?? ''
@@ -85,6 +94,14 @@ const App = () => {
                                 element={
                                     <ResearcherRoute>
                                         <ResearcherDashboard />
+                                    </ResearcherRoute>
+                                }
+                            />
+                            <Route
+                                path="/investigador/crear-encuesta"
+                                element={
+                                    <ResearcherRoute>
+                                        <CreateSurvey />
                                     </ResearcherRoute>
                                 }
                             />
