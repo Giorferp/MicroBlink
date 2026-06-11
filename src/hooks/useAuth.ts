@@ -149,12 +149,19 @@ export function useAuth() {
   useEffect(() => {
     if (!connected) return; // Wait for wallet adapter to fully initialize
 
+    console.log('🔄 Sync check: session user email =', session?.user?.email, 'publicKey =', publicKey?.toBase58());
+
     if (session?.user?.email && publicKey) {
       const activeWalletAddress = publicKey.toBase58();
       const sessionWalletAddress = session.user.email.split('@')[0];
 
+      console.log('🔄 Comparing active:', activeWalletAddress.toLowerCase(), 'with session:', sessionWalletAddress.toLowerCase());
+
       if (activeWalletAddress.toLowerCase() !== sessionWalletAddress.toLowerCase()) {
+        console.warn('⚠️ Mismatch detected! Signing out...');
         signOut();
+      } else {
+        console.log('✅ Active wallet and session wallet match.');
       }
     }
     // Note: We intentionally do NOT sign out when !publicKey && connected
